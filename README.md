@@ -12,7 +12,7 @@
 		Организационные моменты, как будет проходить курс итд
         ДЗ: Разделиться на команды по 4 человека и выбрать модели для оптимизации, сделать базовые замеры
 		метрик производительности
-  	Презентация: [https://docs.google.com/presentation/d/1FVG4Fpbl6ffpzjHUzYq8z-jtBt9AE6wZUhxCcA7gxmE/edit#slide=id.g249d310d701_0_166](url)
+  	[Презентация](https://docs.google.com/presentation/d/1FVG4Fpbl6ffpzjHUzYq8z-jtBt9AE6wZUhxCcA7gxmE/edit#slide=id.g249d310d701_0_166)
 
     Пара 2 - Методы снижения размерности.
 		Квантизация весов моделей
