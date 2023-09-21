@@ -1,0 +1,5 @@
+jupyter
+transformers
+tensorflow==2.10.0
+tensorflow-model-optimization
+model_profiler==1.1.8
