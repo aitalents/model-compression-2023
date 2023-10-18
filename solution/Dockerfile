@@ -3,6 +3,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /src
 ENV PYTHONPATH="${PYTHONPATH}:${WORKDIR}"
+ENV TRANSFORMERS_CACHE="/src/.cache/"
 
 COPY requirements.txt $WORKDIR
 

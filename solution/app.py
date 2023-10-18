@@ -1,5 +1,5 @@
 from typing import List
-from configs.config import AppConfig, ModelConfig
+import asyncio
 
 import uvicorn
 from fastapi import FastAPI, APIRouter
@@ -8,36 +8,65 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
 from starlette.requests import Request
 
+from configs.config import AppConfig, ModelConfig
 from infrastructure.models import TransformerTextClassificationModel
 from service.recognition import TextClassificationService
 from handlers.recognition import PredictionHandler
 from handlers.data_models import ResponseSchema
 
 
-def build_models(model_configs: List[ModelConfig]) -> List[TransformerTextClassificationModel]:
-    models = [
-            TransformerTextClassificationModel(conf.model, conf.model_path, conf.tokenizer)
-            for conf in model_configs
-        ]
-    return models
-
-
 config = AppConfig.parse_file("./configs/app_config.yaml")
-models = build_models(config.models)
+models = [
+            TransformerTextClassificationModel(conf.model, conf.model_path, conf.tokenizer)
+            for conf in config.models
+        ]
 
 recognition_service = TextClassificationService(models)
-recognition_handler = PredictionHandler(recognition_service)
+recognition_handler = PredictionHandler(recognition_service, config.timeout)
 
 app = FastAPI()
 router = APIRouter()
 
 
+@app.on_event("startup")
+async def count_max_batch_size():
+    print("Calculating Max batch size")
+    batch_size = 100
+
+    try:
+        while True:
+            text = ["this is simple text"]*batch_size
+            inputs = [model.tokenize_texts(text) for model in models]
+            outputs = [model(m_inputs) for model, m_inputs in zip(models, inputs)]
+            batch_size += 100
+
+    except RuntimeError as err:
+        if "CUDA out of memory" in str(err):
+            batch_size -= 100
+            app.max_batch_size = batch_size
+            print(f"Max batch size calculated = {app.max_batch_size}")
+
+
+@app.on_event("startup")
+def create_queues():
+    app.models_queues = {}
+    for md in models:
+        task_queue = asyncio.Queue()
+        app.models_queues[md.name] = task_queue
+        asyncio.create_task(recognition_handler.handle(md.name, task_queue, app.max_batch_size))
+
+
 @router.post("/process", response_model=ResponseSchema)
 async def process(request: Request):
     text = (await request.body()).decode()
-    # call handler
-    result = recognition_handler.handle(text)
-    return result
+
+    results = []
+    response_q = asyncio.Queue() # init a response queue for every request, one for all models
+    for model_name, model_queue in app.models_queues.items():
+        await model_queue.put((text, response_q))
+        model_res = await response_q.get()
+        results.append(model_res)
+    return recognition_handler.serialize_answer(results)
 
 
 app.include_router(router)
@@ -83,4 +112,3 @@ async def openapi_endpoint():
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=config.port, workers=config.workers)
-
