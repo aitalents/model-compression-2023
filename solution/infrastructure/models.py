@@ -5,6 +5,7 @@ from typing import List
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from optimum.bettertransformer import BetterTransformer
 
 
 @dataclass
@@ -20,7 +21,7 @@ class BaseTextClassificationModel(ABC):
         self.name = name
         self.model_path = model_path
         self.tokenizer = tokenizer
-        self.device = 0 if torch.cuda.is_available() else -1
+        self.device = 0 if torch.cuda.is_available() else 'cpu'
         self._load_model()
 
     @abstractmethod
@@ -33,7 +34,6 @@ class BaseTextClassificationModel(ABC):
 
 
 class TransformerTextClassificationModel(BaseTextClassificationModel):
-
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
@@ -71,3 +71,21 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         predictions = [TextClassificationModelData(self.name, **prediction) for prediction in predictions]
         return predictions
 
+class BetterTransformerTextClassificationModel(TransformerTextClassificationModel):
+
+    def _load_model(self):
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+        self.model = BetterTransformer.transform(self.model)
+        self.model = self.model.to(self.device)
+
+    def tokenize_texts(self, texts: List[str]):
+        inputs = self.tokenizer.batch_encode_plus(
+                texts,
+                add_special_tokens=True,
+                padding='longest',
+                return_token_type_ids=True,
+                return_tensors='pt'
+                )
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        return inputs
