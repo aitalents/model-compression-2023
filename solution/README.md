@@ -1,3 +1,17 @@
+# Launch
+
+```Bash
+cd solution
+```
+
+```Bash
+docker build -t models_compression .
+```
+
+```Bash
+docker run -it --rm --gpus 0 -p 8080:8080 -v $PWD:/src models_compression
+```
+
 # MLops Challenge
 
 
