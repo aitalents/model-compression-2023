@@ -27,7 +27,6 @@ recognition_handler = PredictionHandler(recognition_service, config.timeout)
 app = FastAPI()
 router = APIRouter()
 
-
 @app.on_event("startup")
 async def count_max_batch_size():
     print("Calculating Max batch size")
@@ -48,6 +47,7 @@ async def count_max_batch_size():
                 app.max_batch_size = batch_size
                 print(f"Max batch size calculated = {app.max_batch_size}")
 
+app.max_batch_size = 1000
 @app.on_event("startup")
 def create_queues():
     app.models_queues = {}
