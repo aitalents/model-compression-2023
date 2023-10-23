@@ -10,8 +10,8 @@ class RecognitionSchema(BaseModel):
 
 class ResponseSchema(BaseModel):
     cardiffnlp: RecognitionSchema
-    ivanlau: RecognitionSchema
+    '''ivanlau: RecognitionSchema
     svalabs: RecognitionSchema
     EIStakovskii: RecognitionSchema
-    jy46604790: RecognitionSchema
+    jy46604790: RecognitionSchema'''
 
