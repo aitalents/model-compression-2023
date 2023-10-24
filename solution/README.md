@@ -102,3 +102,6 @@ Your service should respond in the following format. You can also find an exampl
 - We will be stress-testing your code.
 - Consider the scalability and reusability of your service.
 - Focus on the application.
+
+docker build -t infra-challendge .
+docker run -ti --rm --gpus device=0 -p 8080:8080 -v $PWD:/src infra-challendge

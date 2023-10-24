@@ -2,10 +2,14 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import List
+import onnxruntime
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from optimum.onnxruntime import ORTModelForSequenceClassification
 
+
+session_options = onnxruntime.SessionOptions()
 
 @dataclass
 class TextClassificationModelData:
@@ -20,7 +24,7 @@ class BaseTextClassificationModel(ABC):
         self.name = name
         self.model_path = model_path
         self.tokenizer = tokenizer
-        self.device = 0 if torch.cuda.is_available() else "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #0 if torch.cuda.is_available() else -1
         self._load_model()
 
     @abstractmethod
@@ -36,7 +40,13 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+        self.model = ORTModelForSequenceClassification.from_pretrained(
+                self.model_path,
+                export=True,
+                provider="CUDAExecutionProvider",
+                session_options=session_options
+        )
+        # self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
         self.model = self.model.to(self.device)
 
     def tokenize_texts(self, texts: List[str]):
@@ -45,10 +55,10 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
                 add_special_tokens=True,
                 padding='longest',
                 truncation=True,
-                return_token_type_ids=True,
+                return_token_type_ids=False,
                 return_tensors='pt'
                 )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
+        inputs = inputs.to(self.device) #{k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
         return inputs
 
     def _results_from_logits(self, logits: torch.Tensor):
