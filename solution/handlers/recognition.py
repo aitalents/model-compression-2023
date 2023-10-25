@@ -8,7 +8,11 @@ from handlers.data_models import ResponseSchema, RecognitionSchema
 
 class PredictionHandler:
 
-    def __init__(self, recognition_service: TextClassificationService, timeout: float):
+    def __init__(
+            self,
+            recognition_service: TextClassificationService,
+            timeout: float
+    ):
         self.recognition_service = recognition_service
         self.timeout = timeout
 
@@ -19,7 +23,9 @@ class PredictionHandler:
 
             try:
                 while True:
-                    (text, response_queue) = await asyncio.wait_for(model_queue.get(), timeout=self.timeout)
+                    (text, response_queue) = await asyncio.wait_for(
+                        model_queue.get(), timeout=self.timeout
+                    )
                     texts.append(text)
                     queues.append(response_queue)
             except asyncio.exceptions.TimeoutError:
@@ -34,7 +40,9 @@ class PredictionHandler:
             self,
             results: List[TextClassificationModelData]
     ) -> ResponseSchema:
-        res_model = {rec.model_name: self._recognitions_to_schema(rec) for rec in results}
+        res_model = {
+            rec.model_name: self._recognitions_to_schema(rec) for rec in results
+        }
         return ResponseSchema(**res_model)
 
     @staticmethod
@@ -46,8 +54,3 @@ class PredictionHandler:
         return RecognitionSchema(
             score=recognition.score, label=recognition.label
         )
-
-    @staticmethod
-    def _perform_batches(texts: List[str], max_batch_size):
-        for i in range(0, len(texts), max_batch_size):
-            yield texts[i:i + max_batch_size]

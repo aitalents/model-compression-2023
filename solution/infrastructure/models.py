@@ -53,20 +53,10 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
-        self.model = self.model.to(self.device)
-
-    def tokenize_texts(self, texts: List[str]):
-        inputs = self.tokenizer.batch_encode_plus(
-            texts,
-            add_special_tokens=True,
-            padding='longest',
-            truncation=True,
-            return_token_type_ids=True,
-            return_tensors='pt'
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            self.model_path
         )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
-        return inputs
+        self.model = self.model.to(self.device)
 
     def _results_from_logits(self, logits: torch.Tensor):
         id2label = self.model.config.id2label
@@ -90,7 +80,7 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         ]
 
 
-class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
+class OptimumOptimTransformer(TransformerTextClassificationModel):
 
     def __init__(self, name: str, model_path: str, tokenizer: str):
         super().__init__(name, model_path, tokenizer)
@@ -131,6 +121,7 @@ class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
             accelerator="ort",
             device=self.device,
         )
+        self._warmup_model()
         print(f'Model {self.name} has been loaded successfully.')
 
     def __call__(self, texts: List[str]) -> List[TextClassificationModelData]:
@@ -143,11 +134,11 @@ class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
 class TransformersFactory:
     def __init__(self):
         self.models_zoo = {
-            'cardiffnlp': OptimumOptimQuantTransformer,
-            'ivanlau': OptimumOptimQuantTransformer,
-            'svalabs': OptimumOptimQuantTransformer,
-            'EIStakovskii': OptimumOptimQuantTransformer,
-            'jy46604790': OptimumOptimQuantTransformer,
+            'cardiffnlp': OptimumOptimTransformer,
+            'ivanlau': OptimumOptimTransformer,
+            'svalabs': OptimumOptimTransformer,
+            'EIStakovskii': OptimumOptimTransformer,
+            'jy46604790': OptimumOptimTransformer,
         }
 
     def create(
