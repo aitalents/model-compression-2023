@@ -1,4 +1,4 @@
-FROM huggingface/transformers-pytorch-gpu
+FROM huggingface/transformers-pytorch-gpu:4.29.2
 ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /src
