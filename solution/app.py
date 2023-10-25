@@ -1,4 +1,5 @@
-from typing import List
+import time
+
 import asyncio
 
 import uvicorn
@@ -8,8 +9,8 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
 from starlette.requests import Request
 
-from configs.config import AppConfig, ModelConfig
-from infrastructure.models import TransformerTextClassificationModel
+from configs.config import AppConfig
+from infrastructure.models import OnnxTransformerTextClassificationModel
 from service.recognition import TextClassificationService
 from handlers.recognition import PredictionHandler
 from handlers.data_models import ResponseSchema
@@ -17,38 +18,35 @@ from handlers.data_models import ResponseSchema
 
 config = AppConfig.parse_file("./configs/app_config.yaml")
 models = [
-            TransformerTextClassificationModel(conf.model, conf.model_path, conf.tokenizer)
+            OnnxTransformerTextClassificationModel(conf.model, conf.model_path, conf.tokenizer)
             for conf in config.models
         ]
-
 recognition_service = TextClassificationService(models)
 recognition_handler = PredictionHandler(recognition_service, config.timeout)
 
 app = FastAPI()
 router = APIRouter()
 
-app.max_batch_size = 1000
-
 
 @app.on_event("startup")
-def create_queues():
+async def create_queue():
     app.models_queues = {}
     for md in models:
         task_queue = asyncio.Queue()
         app.models_queues[md.name] = task_queue
-        asyncio.create_task(recognition_handler.handle(md.name, task_queue, app.max_batch_size))
+        asyncio.create_task(recognition_handler.handle(md.name, task_queue))
 
 
 @router.post("/process", response_model=ResponseSchema)
 async def process(request: Request):
     text = (await request.body()).decode()
-
     results = []
     response_q = asyncio.Queue() # init a response queue for every request, one for all models
     for model_name, model_queue in app.models_queues.items():
         await model_queue.put((text, response_q))
         model_res = await response_q.get()
         results.append(model_res)
+
     return recognition_handler.serialize_answer(results)
 
 
