@@ -143,11 +143,11 @@ class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
 class TransformersFactory:
     def __init__(self):
         self.models_zoo = {
-            'cardiffnlp': TransformerTextClassificationModel,
+            'cardiffnlp': OptimumOptimQuantTransformer,
             'ivanlau': OptimumOptimQuantTransformer,
-            'svalabs': TransformerTextClassificationModel,
-            'EIStakovskii': TransformerTextClassificationModel,
-            'jy46604790': TransformerTextClassificationModel,
+            'svalabs': OptimumOptimQuantTransformer,
+            'EIStakovskii': OptimumOptimQuantTransformer,
+            'jy46604790': OptimumOptimQuantTransformer,
         }
 
     def create(

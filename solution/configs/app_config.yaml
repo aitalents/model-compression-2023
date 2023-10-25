@@ -2,11 +2,6 @@ models:
   - model: "cardiffnlp"
     model_path: "cardiffnlp/twitter-xlm-roberta-base-sentiment"
     tokenizer: "cardiffnlp/twitter-xlm-roberta-base-sentiment"
-
-all_models:
-  - model: "cardiffnlp"
-    model_path: "cardiffnlp/twitter-xlm-roberta-base-sentiment"
-    tokenizer: "cardiffnlp/twitter-xlm-roberta-base-sentiment"
   - model: "ivanlau"
     model_path: "ivanlau/language-detection-fine-tuned-on-xlm-roberta-base"
     tokenizer: "ivanlau/language-detection-fine-tuned-on-xlm-roberta-base"
@@ -24,4 +19,3 @@ port: 8080
 workers: 1
 
 timeout: 0.01
-
