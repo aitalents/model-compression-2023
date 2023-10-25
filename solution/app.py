@@ -1,3 +1,6 @@
+import os
+os.environ['CURL_CA_BUNDLE'] = ''
+
 from typing import List
 import asyncio
 
