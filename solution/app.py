@@ -16,10 +16,12 @@ from handlers.data_models import ResponseSchema
 
 config = AppConfig.parse_file("./configs/app_config.yaml")
 models_factory = TransformersFactory()
-models = [
-    models_factory.create(conf.model, conf.model_path, conf.tokenizer)
+models = {
+    conf.model: models_factory.create(
+        conf.model, conf.model_path, conf.tokenizer
+    )
     for conf in config.models
-]
+}
 
 recognition_service = TextClassificationService(models)
 recognition_handler = PredictionHandler(recognition_service, config.timeout)
@@ -29,17 +31,12 @@ router = APIRouter()
 
 
 @app.on_event("startup")
-async def count_max_batch_size():
-    app.max_batch_size = 100
-
-
-@app.on_event("startup")
 def create_queues():
     app.models_queues = {}
-    for md in models:
+    for model_name in models.keys():
         task_queue = asyncio.Queue()
-        app.models_queues[md.name] = task_queue
-        asyncio.create_task(recognition_handler.handle(md.name, task_queue, app.max_batch_size))
+        app.models_queues[model_name] = task_queue
+        asyncio.create_task(recognition_handler.handle(model_name, task_queue))
 
 
 @router.post("/process", response_model=ResponseSchema)
