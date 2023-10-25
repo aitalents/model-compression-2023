@@ -5,6 +5,7 @@ from typing import List
 
 from loguru import logger
 import torch
+from optimum.bettertransformer import BetterTransformer
 from torch.nn.utils import prune
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
@@ -78,5 +79,6 @@ class OptimizedTransformerTextClassificationModel(TransformerTextClassificationM
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+        self.model = BetterTransformer.transform(self.model, keep_original_model=True)
         self.model = self.model.to(self.device)
         self.model.eval()
