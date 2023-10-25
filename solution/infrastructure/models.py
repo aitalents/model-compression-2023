@@ -1,3 +1,5 @@
+
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -5,6 +7,18 @@ from typing import List
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+
+from optimum.pipelines import pipeline
+
+from optimum.onnxruntime import (
+    AutoOptimizationConfig,
+    AutoQuantizationConfig,
+    ORTModelForSequenceClassification,
+    ORTQuantizer, ORTOptimizer
+)
+
+
+MODELS_PATH = '/models/optimum'
 
 
 @dataclass
@@ -41,13 +55,13 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def tokenize_texts(self, texts: List[str]):
         inputs = self.tokenizer.batch_encode_plus(
-                texts,
-                add_special_tokens=True,
-                padding='longest',
-                truncation=True,
-                return_token_type_ids=True,
-                return_tensors='pt'
-                )
+            texts,
+            add_special_tokens=True,
+            padding='longest',
+            truncation=True,
+            return_token_type_ids=True,
+            return_tensors='pt'
+        )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
         return inputs
 
@@ -71,3 +85,83 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         predictions = [TextClassificationModelData(self.name, **prediction) for prediction in predictions]
         return predictions
 
+
+class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
+
+    def __init__(self, name: str, model_path: str, tokenizer: str):
+        super().__init__(name, model_path, tokenizer)
+
+    def _optimize_model(self) -> str:
+        model = ORTModelForSequenceClassification.from_pretrained(
+            self.model_path, export=True,
+        )
+        optimization_config = AutoOptimizationConfig.O3()
+        optimizer = ORTOptimizer.from_pretrained(model)
+        save_dir = os.path.join(MODELS_PATH, f'{self.name}_opt')
+        os.makedirs(save_dir)
+        optimizer.optimize(
+            save_dir=save_dir,
+            optimization_config=optimization_config,
+        )
+        return save_dir
+
+    def _quantize_model(self, model_dir: str) -> str:
+        model = ORTModelForSequenceClassification.from_pretrained(model_dir)
+        qconfig = AutoQuantizationConfig.avx512_vnni(
+            is_static=False, per_channel=True
+        )
+        quantizer = ORTQuantizer.from_pretrained(model)
+        save_dir = os.path.join(MODELS_PATH, f'{self.name}_opt-quant')
+        os.makedirs(save_dir)
+        quantizer.quantize(
+            save_dir=save_dir, quantization_config=qconfig,
+        )
+        return save_dir
+
+    def _warmup_model(self) -> None:
+        dummy_input = 'complete a transaction from savings to checking of $2000'
+        for _ in range(10):
+            _ = self.pipe(dummy_input)
+
+    def _load_model(self):
+        print(f'Start {self.name} model loading.')
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
+        opt_model_dir = self._optimize_model()
+        # opt_quant_model_dir = self._quantize_model(opt_model_dir)
+        self.model = ORTModelForSequenceClassification.from_pretrained(
+            opt_model_dir,
+            provider="CUDAExecutionProvider",
+        )
+        self.pipe = pipeline(
+            "text-classification",
+            model=self.model,
+            tokenizer=self.tokenizer,
+            accelerator="ort",
+            device=self.device,
+        )
+        print(f'Model {self.name} has been loaded successfully.')
+
+    def __call__(self, texts: List[str]) -> List[TextClassificationModelData]:
+        return [
+            TextClassificationModelData(self.name, **prediction)
+            for prediction in self.pipe(texts)
+        ]
+
+
+class TransformersFactory:
+    def __init__(self):
+        self.models_zoo = {
+            'cardiffnlp': TransformerTextClassificationModel,
+            'ivanlau': OptimumOptimQuantTransformer,
+            'svalabs': TransformerTextClassificationModel,
+            'EIStakovskii': TransformerTextClassificationModel,
+            'jy46604790': TransformerTextClassificationModel,
+        }
+
+    def create(
+            self,
+            model_name: str,
+            model_path: str,
+            tokenizer: str,
+    ) -> TransformerTextClassificationModel:
+        return self.models_zoo[model_name](model_name, model_path, tokenizer)
