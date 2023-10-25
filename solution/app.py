@@ -1,25 +1,25 @@
-from typing import List
+
 import asyncio
 
-import uvicorn
 from fastapi import FastAPI, APIRouter
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
 from starlette.requests import Request
 
-from configs.config import AppConfig, ModelConfig
-from infrastructure.models import TransformerTextClassificationModel
+from configs.config import AppConfig
+from infrastructure.models import TransformersFactory
 from service.recognition import TextClassificationService
 from handlers.recognition import PredictionHandler
 from handlers.data_models import ResponseSchema
 
 
 config = AppConfig.parse_file("./configs/app_config.yaml")
+models_factory = TransformersFactory()
 models = [
-            TransformerTextClassificationModel(conf.model, conf.model_path, conf.tokenizer)
-            for conf in config.models
-        ]
+    models_factory.create(conf.model, conf.model_path, conf.tokenizer)
+    for conf in config.models
+]
 
 recognition_service = TextClassificationService(models)
 recognition_handler = PredictionHandler(recognition_service, config.timeout)
@@ -30,21 +30,7 @@ router = APIRouter()
 
 @app.on_event("startup")
 async def count_max_batch_size():
-    print("Calculating Max batch size")
-    batch_size = 100
-
-    try:
-        while True:
-            text = ["this is simple text"]*batch_size
-            inputs = [model.tokenize_texts(text) for model in models]
-            outputs = [model(m_inputs) for model, m_inputs in zip(models, inputs)]
-            batch_size += 100
-
-    except RuntimeError as err:
-        if "CUDA out of memory" in str(err):
-            batch_size -= 100
-            app.max_batch_size = batch_size
-            print(f"Max batch size calculated = {app.max_batch_size}")
+    app.max_batch_size = 100
 
 
 @app.on_event("startup")
@@ -108,7 +94,3 @@ async def swagger_ui_html():
 )
 async def openapi_endpoint():
     return custom_openapi()
-
-
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=config.port, workers=config.workers)
