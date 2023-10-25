@@ -2,6 +2,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import List
+# from optimum.pipelines import pipeline
+# from optimum.onnxruntime import ORTOptimizer, ORTModelForSequenceClassification
+# from optimum.onnxruntime.configuration import OptimizationConfig
+from optimum.bettertransformer import BetterTransformer
+# import onnxruntime
+# import os
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
@@ -34,9 +40,27 @@ class BaseTextClassificationModel(ABC):
 
 class TransformerTextClassificationModel(BaseTextClassificationModel):
 
+    # def optimize_model(self, model, model_path):
+    #     save_dir = f"infrastructure/models/{model_path}"
+    #     if not os.path.exists(save_dir):
+    #         optimization_config = OptimizationConfig(optimize_for_gpu=False,
+    #                                                  optimization_level=99)
+    #         optimizer = ORTOptimizer.from_pretrained(model)
+    #         optimizer.optimize(save_dir=save_dir, optimization_config=optimization_config)
+    #     optimized_model = ORTModelForSequenceClassification.from_pretrained(save_dir)
+    #     return optimized_model
+
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
+        # session_options = onnxruntime.SessionOptions()
+        # session_options.log_severity_level = 0
+        # self.model = ORTModelForSequenceClassification.from_pretrained(self.model_path,
+        #                                                                export=True,
+        #                                                                session_options=session_options
+        #                                                                )
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+        self.model = BetterTransformer.transform(self.model, keep_original_model=True)
+        # self.model = self.optimize_model(self.model, self.model_path)
         self.model = self.model.to(self.device)
 
     def tokenize_texts(self, texts: List[str]):
