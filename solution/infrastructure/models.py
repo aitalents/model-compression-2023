@@ -1,13 +1,10 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import List
 
-from loguru import logger
 import torch
 from optimum.bettertransformer import BetterTransformer
-from torch.nn.utils import prune
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 @dataclass
