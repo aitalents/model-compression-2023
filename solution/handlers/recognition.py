@@ -34,11 +34,9 @@ class PredictionHandler:
                         None
                         )
                 if model:
-                    for text_batch in self._perform_batches(texts, max_batch_size):
-                        inputs = model.tokenize_texts(texts)
-                        outs = model(inputs)
-                        for rq, out in zip(queues, outs):
-                            await rq.put(out)
+                    outs = model(texts)
+                    for rq, out in zip(queues, outs):
+                        await rq.put(out)
 
     def serialize_answer(self, results: List[TextClassificationModelData]) -> ResponseSchema:
         res_model = {rec.model_name: self._recognitions_to_schema(rec) for rec in results}
