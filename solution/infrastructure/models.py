@@ -105,19 +105,6 @@ class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
         )
         return save_dir
 
-    def _quantize_model(self, model_dir: str) -> str:
-        model = ORTModelForSequenceClassification.from_pretrained(model_dir)
-        qconfig = AutoQuantizationConfig.avx512_vnni(
-            is_static=False, per_channel=True
-        )
-        quantizer = ORTQuantizer.from_pretrained(model)
-        save_dir = os.path.join(MODELS_PATH, f'{self.name}_opt-quant')
-        os.makedirs(save_dir)
-        quantizer.quantize(
-            save_dir=save_dir, quantization_config=qconfig,
-        )
-        return save_dir
-
     def _warmup_model(self) -> None:
         dummy_input = 'complete a transaction from savings to checking of $2000'
         for _ in range(10):
@@ -127,7 +114,6 @@ class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
         print(f'Start {self.name} model loading.')
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
         opt_model_dir = self._optimize_model()
-        # opt_quant_model_dir = self._quantize_model(opt_model_dir)
         self.model = ORTModelForSequenceClassification.from_pretrained(
             opt_model_dir,
             provider="CUDAExecutionProvider",
