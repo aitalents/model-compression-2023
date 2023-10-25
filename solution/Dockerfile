@@ -1,4 +1,4 @@
-FROM huggingface/transformers-pytorch-gpu
+FROM huggingface/transformers-pytorch-gpu:4.29.2
 ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /src
@@ -14,4 +14,4 @@ RUN apt-get update && apt upgrade -y && \
 
 COPY . $WORKDIR
 
-ENTRYPOINT [ "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1" ]
+# ENTRYPOINT [ "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1" ]
