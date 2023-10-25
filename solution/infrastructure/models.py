@@ -84,9 +84,10 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def __call__(self, inputs) -> List[TextClassificationModelData]:
         logits = self.model(**inputs).logits
-        predictions = self._results_from_logits(logits)
-        predictions = [TextClassificationModelData(self.name, **prediction) for prediction in predictions]
-        return predictions
+        return [
+            TextClassificationModelData(self.name, **prediction)
+            for prediction in self._results_from_logits(logits)
+        ]
 
 
 class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
