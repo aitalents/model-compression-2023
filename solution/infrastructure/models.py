@@ -1,24 +1,27 @@
 
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+
 from dataclasses import dataclass
 from typing import List
 
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    pipeline
+)
 
 from optimum.pipelines import pipeline
-
 from optimum.onnxruntime import (
     AutoOptimizationConfig,
     AutoQuantizationConfig,
     ORTModelForSequenceClassification,
-    ORTQuantizer, ORTOptimizer
+    ORTOptimizer
 )
 
 
-MODELS_PATH = '/models/optimum'
+MODELS_PATH = '/src/.cache/optimum_models'
 
 
 @dataclass
@@ -92,12 +95,14 @@ class OptimumOptimQuantTransformer(TransformerTextClassificationModel):
         super().__init__(name, model_path, tokenizer)
 
     def _optimize_model(self) -> str:
+        save_dir = os.path.join(MODELS_PATH, f'{self.name}_opt')
+        if os.path.isdir(save_dir):
+            return save_dir
         model = ORTModelForSequenceClassification.from_pretrained(
             self.model_path, export=True,
         )
         optimization_config = AutoOptimizationConfig.O3()
         optimizer = ORTOptimizer.from_pretrained(model)
-        save_dir = os.path.join(MODELS_PATH, f'{self.name}_opt')
         os.makedirs(save_dir)
         optimizer.optimize(
             save_dir=save_dir,
