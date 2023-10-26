@@ -52,12 +52,6 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
-        # self.model = ORTModelForSequenceClassification.from_pretrained(
-        #         self.model_path,
-        #         export=True,
-        #         provider="CUDAExecutionProvider",
-        #         session_options=session_options
-        # )
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
         self.model = BetterTransformer.transform(self.model, keep_original_model=True)
         self.model = self.model.to(self.device)
