@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from typing import List
 
 import torch
+import torch.quantization
+import torch.nn as nn
 from optimum.bettertransformer import BetterTransformer
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -66,9 +68,10 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         return results
 
     def __call__(self, inputs) -> List[TextClassificationModelData]:
-        logits = self.model(**inputs).logits
-        predictions = self._results_from_logits(logits)
-        predictions = [TextClassificationModelData(self.name, **prediction) for prediction in predictions]
+        with torch.no_grad():
+            logits = self.model(**inputs).logits
+            predictions = self._results_from_logits(logits)
+            predictions = [TextClassificationModelData(self.name, **prediction) for prediction in predictions]
         return predictions
 
 
@@ -79,3 +82,17 @@ class OptimizedTransformerTextClassificationModel(TransformerTextClassificationM
         self.model = BetterTransformer.transform(self.model, keep_original_model=True)
         self.model = self.model.to(self.device)
         self.model.eval()
+
+
+
+        self.model = torch.quantization.quantize_dynamic(self.model, {
+            nn.LSTM, nn.Linear}, dtype=torch.qint8)
+
+
+        ## С этой медлененнее почему-то, чем просто верхние слои?((
+        # self.model = torch.quantization.quantize_dynamic(self.model, {
+        #     nn.Embedding}, dtype=torch.quint8)
+
+        self.model = self.model.to(self.device)
+        self.model.eval()
+
