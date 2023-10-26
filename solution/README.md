@@ -47,7 +47,7 @@ We will check your submission, run tests and respond with benchmark results and 
 
 Please work on your solution for the challenge inside the `solution` folder.
 
-If you need to add env vars to the container, update values in the Helm chart. 
+If you need to add env vars to the container, update values in the Helm chart.
 To do that please use `solution/helm/envs/*.yaml`.
 
 Don't forget to update env vars in `autotests/helm/values.yaml`, i.e., `PARTICIPANT_NAME` and `api_host`, to make sure that auto-tests are executed properly.
@@ -116,3 +116,13 @@ Your service should respond in the following format. You can also find an exampl
 - We will be stress-testing your code.
 - Consider the scalability and reusability of your service.
 - Focus on the application.
+
+
+## Benchmarks and system info
+
+### system info
+![system](imgs/system.png)
+
+### cpu and gpu bencmarks
+![cpu](imgs/cpu.png)
+![gpu](imgs/gpu.png)
