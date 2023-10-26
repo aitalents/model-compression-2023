@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import List
+from optimum.bettertransformer import BetterTransformer
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
@@ -12,7 +13,6 @@ class TextClassificationModelData:
     model_name: str
     label: str
     score: float
-
 
 class BaseTextClassificationModel(ABC):
 
@@ -36,7 +36,8 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+        tmp_model = BetterTransformer.transform( AutoModelForSequenceClassification.from_pretrained(self.model_path))
+        self.model = torch.quantization.convert(tmp_model, inplace=True)
         self.model = self.model.to(self.device)
 
     def tokenize_texts(self, texts: List[str]):
