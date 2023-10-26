@@ -25,7 +25,7 @@ class BaseTextClassificationModel(ABC):
         self.name = name
         self.model_path = model_path
         self.tokenizer = tokenizer
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #0 if torch.cuda.is_available() else -1
+        self.device = 0 if torch.cuda.is_available() else "cpu"
         self._load_model()
 
     @abstractmethod
@@ -62,10 +62,10 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
                 add_special_tokens=True,
                 padding='longest',
                 truncation=True,
-                return_token_type_ids=False,
+                return_token_type_ids=True,
                 return_tensors='pt'
                 )
-        inputs = inputs.to(self.device) #{k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
         return inputs
 
     def _results_from_logits(self, logits: torch.Tensor):
