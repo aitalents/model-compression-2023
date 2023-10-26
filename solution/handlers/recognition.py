@@ -35,8 +35,8 @@ class PredictionHandler:
                         )
                 if model:
                     for text_batch in self._perform_batches(texts, max_batch_size):
-                        inputs = model.tokenize_texts(texts)
-                        outs = model(inputs)
+                        #inputs = model.tokenize_texts(texts)
+                        outs = model(text_batch)
                         for rq, out in zip(queues, outs):
                             await rq.put(out)
 
