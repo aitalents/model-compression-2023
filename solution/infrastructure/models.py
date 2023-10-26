@@ -1,9 +1,12 @@
+import shutil
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import List
 
 import torch
+from optimum.onnxruntime import ORTModelForSequenceClassification, ORTOptimizer
+from optimum.onnxruntime.configuration import OptimizationConfig as ORTOptimizationConfig
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
 
@@ -12,6 +15,13 @@ class TextClassificationModelData:
     model_name: str
     label: str
     score: float
+
+
+@dataclass
+class OptimizationConfig:
+    optimization_level: int = 99
+    optimize_for_gpu: bool = True
+    fp16: bool = True
 
 
 class BaseTextClassificationModel(ABC):
@@ -36,8 +46,34 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
-        self.model = self.model.to(self.device)
+
+        provider = 'CUDAExecutionProvider'
+        if self.device == 'cpu':
+            provider = 'CPUExecutionProvider'
+        optimization_config = OptimizationConfig(
+            optimize_for_gpu=self.device != 'cpu', fp16=self.device != 'cpu',
+        )
+
+        model = ORTModelForSequenceClassification.from_pretrained(
+            self.model_path, export=True, provider=provider,
+        )
+
+        output_dir = 'optimization'
+        optimizer = ORTOptimizer.from_pretrained(model)
+        optimizer.optimize(
+            optimization_config=ORTOptimizationConfig(
+                **asdict(optimization_config),
+            ),
+            save_dir=output_dir,
+        )
+
+        self.model = ORTModelForSequenceClassification.from_pretrained(
+            model_id=output_dir,
+            provider=provider,
+            use_io_binding=self.device != 'cpu',
+        )
+
+        shutil.rmtree(output_dir)
 
     def tokenize_texts(self, texts: List[str]):
         inputs = self.tokenizer.batch_encode_plus(
@@ -45,9 +81,8 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
                 add_special_tokens=True,
                 padding='longest',
                 truncation=True,
-                return_token_type_ids=True,
-                return_tensors='pt'
-                )
+                return_tensors='pt',
+            )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
         return inputs
 
