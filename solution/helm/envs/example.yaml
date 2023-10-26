@@ -1,0 +1,30 @@
+global:
+  # add any variables you need in format `key: value`
+  # variables will be available in the container as environment variables
+  env:
+    EXAMPLE: "example"
+
+  # change 8000 to your application target port
+  pod:
+    ports:
+      - name: http
+        containerPort: 8000
+        protocol: TCP
+  service:
+    targetPort: 8000
+
+  # add any configmap data you need
+  # configmaps will be mounted to /workspace/<configmap-name>
+  config:
+    mount:
+      path: /workspace
+    # Map of configmap entries. Entries might be of types: string, map
+    data:
+      conf1.yaml:
+        key1:
+          key11: value11
+          key12: value12
+        key2: value2
+      conf2.yaml:
+        key1: value1
+        key2: value2
