@@ -80,18 +80,19 @@ class OptimizedTransformerTextClassificationModel(TransformerTextClassificationM
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
         self.model = BetterTransformer.transform(self.model, keep_original_model=True)
+
         self.model = self.model.to(self.device)
         self.model.eval()
 
 
-
-        self.model = torch.quantization.quantize_dynamic(self.model, {
+        if self.device == 'cpu':
+            self.model = torch.quantization.quantize_dynamic(self.model, {
             nn.LSTM, nn.Linear}, dtype=torch.qint8)
+            self.model = torch.quantization.quantize_dynamic(self.model, {
+                nn.Embedding}, dtype=torch.quint8)
+        else:
+            self.model = self.model.half()
 
-
-        ## С этой медлененнее почему-то, чем просто верхние слои?((
-        # self.model = torch.quantization.quantize_dynamic(self.model, {
-        #     nn.Embedding}, dtype=torch.quint8)
 
         self.model = self.model.to(self.device)
         self.model.eval()
