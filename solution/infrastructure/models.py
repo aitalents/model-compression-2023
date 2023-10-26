@@ -63,11 +63,11 @@ class OnnxTransformerTextClassificationModel(TransformerTextClassificationModel)
         model = ORTModelForSequenceClassification.from_pretrained(
                 self.model_path,
                 export=True,
-                provider="CUDAExecutionProvider",
+                provider="CPUExecutionProvider",
                 session_options=session_options
         )
 
         model_optimizer = OnnxModelOptimizer(model)
-        model = model_optimizer.graph_optimization(self.name, model)
+        model = model_optimizer.graph_optimization(self.name)
 
-        return pipeline("text-classification", model=model, tokenizer=tokenizer, device="cuda:0")
+        return pipeline("text-classification", model=model, tokenizer=tokenizer, device="cpu")
