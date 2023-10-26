@@ -5,6 +5,7 @@ from typing import List
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from optimum.bettertransformer import BetterTransformer
 
 
 @dataclass
@@ -38,6 +39,8 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
         self.model = self.model.to(self.device)
+        self.model = BetterTransformer.transform(self.model)
+        # self.model = torch.compile(self.model)
 
     def tokenize_texts(self, texts: List[str]):
         inputs = self.tokenizer.batch_encode_plus(
@@ -65,6 +68,7 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
             ]
         return results
 
+    @torch.inference_mode()
     def __call__(self, inputs) -> List[TextClassificationModelData]:
         logits = self.model(**inputs).logits
         predictions = self._results_from_logits(logits)
