@@ -43,8 +43,7 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
     def _optimize_model(self):
         ort_model = ORTModelForSequenceClassification.from_pretrained(
             self.model_path,
-            export=True,
-            provider=['CUDEExecutionProvider']
+            export=True
         )
 
         save_dir = "./optimized_model"
