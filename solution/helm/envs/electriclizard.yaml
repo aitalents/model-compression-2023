@@ -1,0 +1,13 @@
+global:
+  # add any variables you need in format `key: value`
+  # variables will be available in the container as environment variables
+
+  # change 8000 to your application target port
+  pod:
+    ports:
+      - name: http
+        containerPort: 8080
+        protocol: TCP
+  service:
+    targetPort: 8080
+

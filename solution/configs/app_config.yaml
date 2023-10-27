@@ -1,0 +1,22 @@
+models:
+  - model: "cardiffnlp"
+    model_path: "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+    tokenizer: "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+  - model: "ivanlau"
+    model_path: "ivanlau/language-detection-fine-tuned-on-xlm-roberta-base"
+    tokenizer: "ivanlau/language-detection-fine-tuned-on-xlm-roberta-base"
+  - model: "svalabs"
+    model_path: "svalabs/twitter-xlm-roberta-crypto-spam"
+    tokenizer: "svalabs/twitter-xlm-roberta-crypto-spam"
+  - model: "EIStakovskii"
+    model_path: "EIStakovskii/xlm_roberta_base_multilingual_toxicity_classifier_plus"
+    tokenizer: "EIStakovskii/xlm_roberta_base_multilingual_toxicity_classifier_plus"
+  - model: "jy46604790"
+    model_path: "jy46604790/Fake-News-Bert-Detect"
+    tokenizer: "jy46604790/Fake-News-Bert-Detect"
+
+port: 8080
+workers: 1
+
+timeout: 0.01
+
