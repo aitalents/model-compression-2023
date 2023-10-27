@@ -21,7 +21,7 @@ class BaseTextClassificationModel(ABC):
         self.name = name
         self.model_path = model_path
         self.tokenizer = tokenizer
-        self.device = 0 if torch.cuda.is_available() else -1
+        self.device = 0 if torch.cuda.is_available() else "cpu"
         self._load_model()
 
     @abstractmethod

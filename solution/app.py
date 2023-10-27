@@ -27,24 +27,7 @@ recognition_handler = PredictionHandler(recognition_service, config.timeout)
 app = FastAPI()
 router = APIRouter()
 
-
-@app.on_event("startup")
-async def count_max_batch_size():
-    print("Calculating Max batch size")
-    batch_size = 100
-
-    try:
-        while True:
-            text = ["this is simple text"]*batch_size
-            inputs = [model.tokenize_texts(text) for model in models]
-            outputs = [model(m_inputs) for model, m_inputs in zip(models, inputs)]
-            batch_size += 100
-
-    except RuntimeError as err:
-        if "CUDA out of memory" in str(err):
-            batch_size -= 100
-            app.max_batch_size = batch_size
-            print(f"Max batch size calculated = {app.max_batch_size}")
+app.max_batch_size = 1000
 
 
 @app.on_event("startup")
