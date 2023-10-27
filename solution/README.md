@@ -1,5 +1,52 @@
 # MLops Challenge
 
+## Сборка docker-образов
+
+Переходим в каталог `model-compression-2023/solution`
+
+Для сборки docker-образа c инференсом на `GPU` выполняем команду:
+```
+docker build -t infra-challendge-gpu -f Dockerfile-gpu .
+```
+
+Для сборки docker-образа c инференсом на `CPU` выполняем команду:
+```
+docker build -t infra-challendge-cpu -f Dockerfile-cpu .
+```
+
+Оба образа содержат оптимизацию графа моделей с помощью `Optinum`.
+`CPU-образ` в отличии от `GPU-образа` так же выполнит динамическую квантизацию модели.
+
+## Запуск docker-контейнера
+
+Переходим в каталог `model-compression-2023/solution`
+
+Для запуска docker-контейнера c инференсом на `GPU` выполняем команду:
+```
+docker run -it --rm --gpus 0 -p 8080:8080 -v $PWD:/src infra-challendge-gpu
+```
+
+Для поддержки вычислений на `GPU` внутри docker-контейнера в системе должен быть установлен `nvidia-docker2`.
+
+Для запуска docker-контейнера c инференсом на `CPU` выполняем команду:
+```
+docker run -it --rm -p 8080:8080 -v $PWD:/src infra-challendge-cpu
+```
+
+## Тестовый http-запрос
+
+Для теста запущенного нами сервиса выполним http-запрос:
+```bash
+curl -X 'POST' \
+  'http://localhost:8080/process' \
+  -H 'accept: application/json' \
+    -d '"This is how true happiness looks like 👍😜"'
+```
+
+Пример ответа 5 моделей на данный запрос:
+```
+{"cardiffnlp":{"score":0.8583605289459229,"label":"POSITIVE"},"ivanlau":{"score":0.9999222755432129,"label":"English"},"svalabs":{"score":0.5098975896835327,"label":"HAM"},"EIStakovskii":{"score":0.6709651947021484,"label":"LABEL_0"},"jy46604790":{"score":0.9988253712654114,"label":"LABEL_0"}}
+```
 
 ## How to participate?
 
@@ -58,7 +105,7 @@ The body of the request for inference only has a text:
 
 ```bash
 curl --request POST \
-  --url http://localhost:8000/process \
+  --url http://localhost:8080/process \
   --header 'Content-Type: application/json' \
   --data '"This is how true happiness looks like 👍😜"'
 ```
