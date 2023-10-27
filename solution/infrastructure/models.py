@@ -79,7 +79,7 @@ class OnnxTransformerTextClassificationModel(TransformerTextClassificationModel)
         )
 
         model_optimizer = OnnxModelOptimizer(model)
-        model = model_optimizer.graph_optimization(self.name)
+        model = model_optimizer.graph_optimization(self.name, model)
 
         return pipeline(
             "text-classification", model=model, tokenizer=tokenizer, device=infer_device

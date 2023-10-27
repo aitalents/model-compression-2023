@@ -33,6 +33,8 @@ docker run -it --rm --gpus 0 -p 8080:8080 -v $PWD:/src infra-challendge-gpu
 docker run -it --rm -p 8080:8080 -v $PWD:/src infra-challendge-cpu
 ```
 
+После остановки docker-контейнера желательно удалять папку `model-compression-2023/solution`.
+
 ## Тестовый http-запрос
 
 Для теста запущенного нами сервиса выполним http-запрос:

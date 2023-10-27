@@ -58,20 +58,12 @@ class OnnxModelOptimizer:
 
                 file_name = "model_quantized.onnx"
 
-            # apply the quantization configuration to the model
-            if device == "cpu":
-                self.dynamic_quantizer.quantize(
-                    save_dir=optimized_model_path,
-                    quantization_config=self.dqconfig,
-                )
-
-                file_name = "model_quantized.onnx"
-
         model = ORTModelForSequenceClassification.from_pretrained(
             optimized_model_path,
             file_name=file_name,
             provider=provider,
         )
+        
         return model
 
     def quantinization(self):
