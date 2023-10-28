@@ -103,7 +103,6 @@ Your service should respond in the following format. You can also find an exampl
 - Consider the scalability and reusability of your service.
 - Focus on the application.
 
-
 ## Benchmarks and system info
 
 ### system info
