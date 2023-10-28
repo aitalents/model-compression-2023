@@ -1,4 +1,3 @@
-from typing import List
 
 from pydantic import BaseModel, validator
 
@@ -14,4 +13,3 @@ class ResponseSchema(BaseModel):
     svalabs: RecognitionSchema
     EIStakovskii: RecognitionSchema
     jy46604790: RecognitionSchema
-

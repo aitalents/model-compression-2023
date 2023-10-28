@@ -1,7 +1,9 @@
-optimum[onnxruntime-gpu]==1.8.6
-fastapi[all]==0.95.1
-uvicorn==0.22.0
+transformers==4.28.0
+optimum[onnxruntime-gpu]==1.13.2
+onnxruntime-gpu==1.12.0
+onnx==1.13.0
 numpy==1.23.5
+uvicorn==0.22.0
+fastapi[all]==0.95.1
 pydantic==1.10.7
 pydantic-yaml==0.11.2
-
