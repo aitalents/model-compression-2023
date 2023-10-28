@@ -1,25 +1,20 @@
-from typing import List
 import asyncio
 
 import uvicorn
-from fastapi import FastAPI, APIRouter
+from fastapi import APIRouter, FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
 from starlette.requests import Request
 
-from configs.config import AppConfig, ModelConfig
-from infrastructure.models import TransformerTextClassificationModel
-from service.recognition import TextClassificationService
-from handlers.recognition import PredictionHandler
+from configs.config import AppConfig
 from handlers.data_models import ResponseSchema
-
+from handlers.recognition import PredictionHandler
+from infrastructure.models import CustomBTTransformerTextClassificationModel, TransformerTextClassificationModel
+from service.recognition import TextClassificationService
 
 config = AppConfig.parse_file("./configs/app_config.yaml")
-models = [
-            TransformerTextClassificationModel(conf.model, conf.model_path, conf.tokenizer)
-            for conf in config.models
-        ]
+models = [CustomBTTransformerTextClassificationModel(conf.model, conf.model_path, conf.tokenizer) for conf in config.models]
 
 recognition_service = TextClassificationService(models)
 recognition_handler = PredictionHandler(recognition_service, config.timeout)
@@ -44,7 +39,7 @@ async def process(request: Request):
     text = (await request.body()).decode()
 
     results = []
-    response_q = asyncio.Queue() # init a response queue for every request, one for all models
+    response_q = asyncio.Queue()  # init a response queue for every request, one for all models
     for model_name, model_queue in app.models_queues.items():
         await model_queue.put((text, response_q))
         model_res = await response_q.get()
@@ -78,10 +73,7 @@ def custom_openapi():
     response_class=HTMLResponse,
 )
 async def swagger_ui_html():
-    return get_swagger_ui_html(
-        openapi_url="/documentation/openapi.json",
-        title="API documentation"
-    )
+    return get_swagger_ui_html(openapi_url="/documentation/openapi.json", title="API documentation")
 
 
 @app.get(
