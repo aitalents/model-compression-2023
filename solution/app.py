@@ -37,6 +37,7 @@ def create_queues():
         task_queue = asyncio.Queue()
         app.models_queues[md.name] = task_queue
         asyncio.create_task(recognition_handler.handle(md.name, task_queue, app.max_batch_size))
+        print('Started')
 
 
 @router.post("/process", response_model=ResponseSchema)
