@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import List
+from optimum.bettertransformer import BetterTransformer
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
@@ -41,13 +42,13 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def tokenize_texts(self, texts: List[str]):
         inputs = self.tokenizer.batch_encode_plus(
-                texts,
-                add_special_tokens=True,
-                padding='longest',
-                truncation=True,
-                return_token_type_ids=True,
-                return_tensors='pt'
-                )
+            texts,
+            add_special_tokens=True,
+            padding='longest',
+            truncation=True,
+            return_token_type_ids=True,
+            return_tensors='pt'
+        )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
         return inputs
 
@@ -57,12 +58,12 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         label_ids = logits.argmax(dim=1)
         scores = logits.softmax(dim=-1)
         results = [
-                {
-                    "label": id2label[label_id.item()],
-                    "score": score[label_id.item()].item()
-                }
-                for label_id, score in zip(label_ids, scores)
-            ]
+            {
+                "label": id2label[label_id.item()],
+                "score": score[label_id.item()].item()
+            }
+            for label_id, score in zip(label_ids, scores)
+        ]
         return results
 
     def __call__(self, inputs) -> List[TextClassificationModelData]:
@@ -71,3 +72,11 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         predictions = [TextClassificationModelData(self.name, **prediction) for prediction in predictions]
         return predictions
 
+
+class OptimizedModel(TransformerTextClassificationModel):
+
+    def _load_model(self):
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+        self.model = BetterTransformer.transform(self.model, keep_original_model=True)
+        self.model = self.model.to(self.device)
