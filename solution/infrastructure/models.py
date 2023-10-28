@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import List
-
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from optimum.onnxruntime import AutoQuantizationConfig,ORTModelForSequenceClassification,ORTQuantizer
 
 
 @dataclass
@@ -20,7 +19,8 @@ class BaseTextClassificationModel(ABC):
         self.name = name
         self.model_path = model_path
         self.tokenizer = tokenizer
-        self.device = 0 if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.test = True
         self._load_model()
 
     @abstractmethod
@@ -36,9 +36,21 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
-        self.model = self.model.to(self.device)
+        self.model = ORTModelForSequenceClassification.from_pretrained(self.model_path,
+                                                                       use_io_binding=True,
+                                                                       export=True,)
+        self.save_dir = f"onnx_quantization/{self.model_path.replace('/', '_')}"
 
+        if self.device == "cpu":
+            qconfig = AutoQuantizationConfig.avx512_vnni(is_static=False, per_channel=False)
+            quantizer = ORTQuantizer.from_pretrained(self.model)
+
+            quantizer.quantize(save_dir=self.save_dir, quantization_config=qconfig)
+            self.model = ORTModelForSequenceClassification.from_pretrained(self.save_dir)
+        
+        if self.device == "cuda":
+            self.model = self.model.to(self.device)
+            
     def tokenize_texts(self, texts: List[str]):
         inputs = self.tokenizer.batch_encode_plus(
                 texts,
@@ -66,6 +78,7 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         return results
 
     def __call__(self, inputs) -> List[TextClassificationModelData]:
+        inputs.pop("token_type_ids")
         logits = self.model(**inputs).logits
         predictions = self._results_from_logits(logits)
         predictions = [TextClassificationModelData(self.name, **prediction) for prediction in predictions]
