@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from typing import List
 
 import torch
+from optimum.onnxruntime.configuration import AutoQuantizationConfig
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from optimum.bettertransformer import BetterTransformer
+from optimum.onnxruntime import ORTModelForSequenceClassification, ORTQuantizer
 
 
 @dataclass
@@ -41,13 +44,13 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
 
     def tokenize_texts(self, texts: List[str]):
         inputs = self.tokenizer.batch_encode_plus(
-                texts,
-                add_special_tokens=True,
-                padding='longest',
-                truncation=True,
-                return_token_type_ids=True,
-                return_tensors='pt'
-                )
+            texts,
+            add_special_tokens=True,
+            padding='longest',
+            truncation=True,
+            return_token_type_ids=True,
+            return_tensors='pt'
+        )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
         return inputs
 
@@ -57,12 +60,12 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         label_ids = logits.argmax(dim=1)
         scores = logits.softmax(dim=-1)
         results = [
-                {
-                    "label": id2label[label_id.item()],
-                    "score": score[label_id.item()].item()
-                }
-                for label_id, score in zip(label_ids, scores)
-            ]
+            {
+                "label": id2label[label_id.item()],
+                "score": score[label_id.item()].item()
+            }
+            for label_id, score in zip(label_ids, scores)
+        ]
         return results
 
     def __call__(self, inputs) -> List[TextClassificationModelData]:
@@ -70,4 +73,37 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
         predictions = self._results_from_logits(logits)
         predictions = [TextClassificationModelData(self.name, **prediction) for prediction in predictions]
         return predictions
+
+
+class BetterTransformerTextClassificationModel(TransformerTextClassificationModel):
+
+    def _load_model(self):
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
+        self.model = BetterTransformer.transform(AutoModelForSequenceClassification.from_pretrained(self.model_path))
+        self.model = self.model.to(self.device)
+
+
+class ORTQuantizerTransformerTextClassificationModel(TransformerTextClassificationModel):
+
+    def _load_model(self):
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
+        save_dir = "model_quantized"
+        tmp_model = ORTModelForSequenceClassification.from_pretrained(self.model_path, export=True)
+        qconfig = AutoQuantizationConfig.avx512_vnni(is_static=False, per_channel=True)
+        quantizer = ORTQuantizer.from_pretrained(tmp_model)
+        quantizer.quantize(save_dir=save_dir, quantization_config=qconfig)
+        self.model = ORTModelForSequenceClassification.from_pretrained(save_dir)
+        self.model = self.model.to(self.device)
+
+    def tokenize_texts(self, texts: List[str]):
+        inputs = self.tokenizer.batch_encode_plus(
+            texts,
+            add_special_tokens=True,
+            padding='longest',
+            truncation=True,
+            return_tensors='pt',
+        )
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}  # Move inputs to GPU
+        return inputs
+
 
