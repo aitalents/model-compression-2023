@@ -5,7 +5,10 @@ from typing import List
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+import deepspeed
 
+# предпочли дипспид беттер трансформеру
+# from optimum.bettertransformer import BetterTransformer
 
 @dataclass
 class TextClassificationModelData:
@@ -37,7 +40,12 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+        # предпочли дипспид беттер трансформеру
+        # self.model = BetterTransformer.transform(self.model, keep_original_model=True)
         self.model = self.model.to(self.device)
+
+        ds_engine = deepspeed.init_inference(self.model, dtype=torch.half)
+        self.model = ds_engine.module
 
     def tokenize_texts(self, texts: List[str]):
         inputs = self.tokenizer.batch_encode_plus(
