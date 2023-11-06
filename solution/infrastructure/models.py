@@ -3,8 +3,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import List
 
+from optimum import onnxruntime
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 
 @dataclass
@@ -20,7 +21,7 @@ class BaseTextClassificationModel(ABC):
         self.name = name
         self.model_path = model_path
         self.tokenizer = tokenizer
-        self.device = 0 if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self._load_model()
 
     @abstractmethod
@@ -37,6 +38,7 @@ class TransformerTextClassificationModel(BaseTextClassificationModel):
     def _load_model(self):
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer)
         self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+        self.model = onnxruntime.ORTModelForSequenceClassification.from_pretrained(self.model_path, use_io_binding=True, export=True,)
         self.model = self.model.to(self.device)
 
     def tokenize_texts(self, texts: List[str]):
